@@ -3,6 +3,7 @@ import requests
 from config import host, user, password, db, port
 
 
+# creating a table of characters in the database
 def create_characters_table(cursor):
     cursor.execute(
         """CREATE TABLE IF NOT EXISTS characters(
@@ -17,6 +18,7 @@ def create_characters_table(cursor):
     )
 
 
+# creating a table of locations in the database
 def create_locations_table(cursor):
     cursor.execute(
         """CREATE TABLE IF NOT EXISTS locations(
@@ -28,6 +30,7 @@ def create_locations_table(cursor):
     )
 
 
+# creating a table of episodes in the database
 def create_episodes_table(cursor):
     cursor.execute(
         """CREATE TABLE IF NOT EXISTS episodes (
@@ -40,6 +43,7 @@ def create_episodes_table(cursor):
     )
 
 
+# updating data in a table characters
 def insert_characters(cursor, character_data):
     for character in character_data:
         serial_number = character['id']
@@ -61,6 +65,7 @@ def insert_characters(cursor, character_data):
         """, (serial_number, name, status, species, gender, episodes))
 
 
+# updating data in a table locations
 def insert_locations(cursor, location_data):
     for location in location_data:
         name = location['name']
@@ -75,6 +80,7 @@ def insert_locations(cursor, location_data):
         """, (name, type, dimension))
 
 
+# updating data in a table episodes
 def insert_episodes(cursor, episodes_data):
     for episode in episodes_data:
         name = episode['name']
@@ -90,6 +96,8 @@ def insert_episodes(cursor, episodes_data):
         """, (name, air_date, episode_code, character_id))
 
 
+# getting data from api
+
 def get_rickandmorty_data(data_type):
     output_data = []
     row_data = requests.get(f'https://rickandmortyapi.com/api/{data_type}').json()
@@ -102,6 +110,7 @@ def get_rickandmorty_data(data_type):
     return output_data
 
 
+# connect to database and using functions to check or create tables and update them
 def main():
     connection = psycopg2.connect(
         host=host,
