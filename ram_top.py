@@ -44,9 +44,9 @@ def get_most_episodes(all_episodes, value):
 def main():
     # Handling command line arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument('-v', '--value', type=int, choices=range(1, 101),
+    parser.add_argument('-value', type=int, choices=range(1, 101),
                         help='Integer must be between 1 and 100')
-    parser.add_argument('-t', '--type', type=str, choices=['characters', 'episodes'],
+    parser.add_argument('-type', type=str, choices=['characters', 'episodes'],
                         help='The word must be  characters or  episodes')
     args = parser.parse_args()
 
