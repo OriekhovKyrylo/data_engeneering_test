@@ -1,67 +1,80 @@
-import argparse
 import psycopg2
-
+import argparse
 from config import host, user, password, db, port
 
 
-# connecting to database and getting data
-def connect_and_data_database():
-    with psycopg2.connect(host=host, user=user, password=password, database=db, port=port) as connection:
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT * FROM episodes;")
-            all_episodes = cursor.fetchall()
+def get_top_characters(connection, value):
+    query = """
+        SELECT
+            c.name AS character_name,
+            COUNT(DISTINCT e.id) AS num_episodes
+        FROM
+            characters c
+        JOIN
+            episodes e ON c.id = ANY(e.character_id)
+        GROUP BY
+            c.id, c.name
+        HAVING
+            (COUNT(DISTINCT e.id) / (SELECT COUNT(*) FROM episodes)) * 100 > %s
+        ORDER BY
+            num_episodes DESC
+        LIMIT 10;
+    """
 
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT * FROM characters;")
-            all_characters = cursor.fetchall()
+    with connection.cursor() as cursor:
+        cursor.execute(query, (value,))
+        top_characters = cursor.fetchall()
+        return top_characters
 
-    return all_episodes, all_characters
+def get_episodes_with_character(connection, character_id):
+    query = """
+        SELECT
+            e.name AS episode_name
+        FROM
+            episodes e
+        JOIN
+            characters c ON c.id = ANY(e.character_id)
+        WHERE
+            c.id = %s
+        ORDER BY
+            e.name
+        LIMIT 10;
+    """
 
-
-# a function to get a list of characters corresponding to the conditions of the script
-def get_most_characters(all_episodes, all_characters, value):
-    min_episodes = int(len(all_episodes) * value / 100)
-    matching_characters = []
-    for character in all_characters:
-        if len(character[-1]) > min_episodes:
-            matching_characters.append(character)
-
-    top_characters = sorted(matching_characters, key=lambda x: len(x[-1]), reverse=True)
-    return top_characters
-
-
-# a function to get a list of episodes that match the conditions of the script
-
-def get_most_episodes(all_episodes, value):
-    matching_episodes = []
-    for episode in all_episodes:
-        if value in episode[-1]:
-            matching_episodes.append(episode)
-    top_episodes = sorted(matching_episodes, key=lambda x: x[1])
-    return top_episodes
-
+    with connection.cursor() as cursor:
+        cursor.execute(query, (character_id,))
+        episodes_with_character = cursor.fetchall()
+        return episodes_with_character
 
 def main():
-    # Handling command line arguments
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description='Process characters and episodes data.')
     parser.add_argument('-value', type=int, choices=range(1, 101),
                         help='Integer must be between 1 and 100')
     parser.add_argument('-type', type=str, choices=['characters', 'episodes'],
                         help='The word must be  characters or  episodes')
     args = parser.parse_args()
 
+    conn = psycopg2.connect(
+        host=host,
+        user=user,
+        password=password,
+        database=db,
+        port=port)
+
     if args.type == 'characters':
-        all_episodes, all_characters = connect_and_data_database()
-        result = get_most_characters(all_episodes, all_characters, args.value)
-        for row in result[:10]:
-            print(row[2], len(row[-1]))
+        top_characters = get_top_characters(conn, args.value)
+        print("Top characters:")
+        for character, num_episodes in top_characters:
+            print(f"{character} - {num_episodes} episodes")
+
     elif args.type == 'episodes':
-        all_episodes, all_characters = connect_and_data_database()
+        character_id = args.value
+        episodes_with_character = get_episodes_with_character(conn, character_id)
+        print("Episodes with character:")
+        for episode in episodes_with_character:
+            print(episode[0])
 
-        result = get_most_episodes(all_episodes, args.value)
-        for elem in result[:10]:
-            print(elem[1])
+    conn.close()
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
