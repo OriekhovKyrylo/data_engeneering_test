@@ -4,12 +4,12 @@ from datetime import date
 
 
 def main():
-    folder_name = 'first_task'
+    folder_name = 'squanch'
 
     os.makedirs(folder_name, exist_ok=True)
-    random_word = ''
-    for _ in range(7):
-        random_word += ''.join(random.choice('squanch'))
+    letters = list('squanch')
+    random.shuffle(letters)
+    random_word = ''.join(letters)
 
     current_date = date.today()
     file_name = f"{current_date}_squanch.txt"
