@@ -1,6 +1,11 @@
 import psycopg2
 import requests
 from config import host, user, password, db, port
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
 
 
 # creating a table of characters in the database
@@ -45,6 +50,7 @@ def create_episodes_table(cursor):
 
 # updating data in a table characters
 def insert_characters(cursor, character_data):
+    character_data_list = []
     for character in character_data:
         serial_number = character['id']
         name = character['name']
@@ -53,16 +59,18 @@ def insert_characters(cursor, character_data):
         gender = character['gender']
         episodes = [int(episode.split("/")[-1]) for episode in character["episode"]]
 
-        cursor.execute("""
-            INSERT INTO characters (serial_number, name, status, species, gender, episodes)
-            VALUES (%s, %s, %s, %s, %s, %s)
-            ON CONFLICT (serial_number) DO UPDATE
-            SET name = EXCLUDED.name,
-                status = EXCLUDED.status,
-                species = EXCLUDED.species,
-                gender = EXCLUDED.gender,
-                episodes = EXCLUDED.episodes;
-        """, (serial_number, name, status, species, gender, episodes))
+        character_data_list.append((serial_number, name, status, species, gender, episodes))
+
+    cursor.executemany("""
+        INSERT INTO characters (serial_number, name, status, species, gender, episodes)
+        VALUES (%s, %s, %s, %s, %s, %s)
+        ON CONFLICT (serial_number) DO UPDATE
+        SET name = EXCLUDED.name,
+            status = EXCLUDED.status,
+            species = EXCLUDED.species,
+            gender = EXCLUDED.gender,
+            episodes = EXCLUDED.episodes;
+    """, character_data_list)
 
 
 # updating data in a table locations
@@ -82,6 +90,9 @@ def insert_locations(cursor, location_data):
 
 # updating data in a table episodes
 def insert_episodes(cursor, episodes_data):
+
+
+
     for episode in episodes_data:
         name = episode['name']
         air_date = episode['air_date']
@@ -112,6 +123,8 @@ def get_rickandmorty_data(data_type):
 
 # connect to database and using functions to check or create tables and update them
 def main():
+    logging.info("Starting the script")
+
     connection = psycopg2.connect(
         host=host,
         user=user,
@@ -120,25 +133,36 @@ def main():
         port=port
     )
     with connection.cursor() as cursor:
+        logging.info("Checking or creating tables")
+
         create_characters_table(cursor)
         create_locations_table(cursor)
         create_episodes_table(cursor)
 
     connection.commit()
 
+    logging.info("Getting data from API")
+
+
     character_data = get_rickandmorty_data('character')
     location_data = get_rickandmorty_data('location')
     episodes_data = get_rickandmorty_data('episode')
 
     with connection.cursor() as cursor:
+        logging.info("Inserting character data")
+
         insert_characters(cursor, character_data)
 
     with connection.cursor() as cursor:
+        logging.info("Inserting location data")
+
         insert_locations(cursor, location_data)
 
     with connection.cursor() as cursor:
+        logging.info("Inserting episode data")
+
         insert_episodes(cursor, episodes_data)
-    print('All data updated')
+    logging.info("All data updated")
 
     connection.commit()
     connection.close()
