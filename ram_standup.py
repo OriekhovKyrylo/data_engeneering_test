@@ -1,16 +1,16 @@
 import requests
 import random
 import time
-
+from ram_parse import get_rickandmorty_data
 
 def main():
-    request_url_rick_and_morty = 'https://rickandmortyapi.com/api/character'
+
     request_url_jokes = 'https://v2.jokeapi.dev/joke/Any?amount=7'
 
-    rick_and_morty_data = requests.get(request_url_rick_and_morty).json()
     jokes_data = requests.get(request_url_jokes).json()
 
-    list_of_names = [names['name'] for names in rick_and_morty_data['results']]
+    character_data = get_rickandmorty_data('character')
+    list_of_names = [names['name'] for names in character_data]
     evening_host = random.choice(list_of_names)
     list_of_names.remove(evening_host)
 
@@ -19,7 +19,7 @@ def main():
 
     time.sleep(2)
 
-    for joke, speaker in zip(jokes_data['jokes'], list_of_names):
+    for joke, speaker in zip(jokes_data['jokes'], comics):
         start_show = input("please tap to enter: ")
         print(f'{evening_host} : say hello to the {speaker} on stage')
         time.sleep(2)
@@ -38,3 +38,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
